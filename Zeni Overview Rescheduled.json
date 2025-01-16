@@ -1,0 +1,216 @@
+{
+  "name": "Fix Meeting Outcome: \"Zeni Overview - Rescheduled\"",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/meetings/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer HUBSPOT_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"filters\": [\n    {\n      \"propertyName\": \"hs_meeting_outcome\",\n      \"operator\": \"EQ\",\n      \"value\": \"RESCHEDULED\"\n    },\n    {\n      \"propertyName\": \"hs_activity_type\",\n      \"operator\": \"IN\",\n      \"values\": [\"Zeni Overview - Events BDR\", \"Zeni Overview - Accounts\", \"Zeni Overview - Bill Pay\", \"Zeni Overview - Customer Referral\", \"Zeni Overview - Employee Referral\", \"Zeni Overview - Events\", \"Zeni Overview - Events AE\", \"Zeni Overview - Events Partnerships\", \"Zeni Overview - Inbound\", \"Zeni Overview - Inbound Partnerships\", \"Zeni Overview - Inbound VC Referral\", \"Zeni Overview - Outbound AE\", \"Zeni Overview - Outbound BDR\", \"Zeni Overview - Partnerships\", \"Zeni Overview - Partnerships AE Self Set\", \"Zeni Overview - Reimbursements\", \"Zeni Overview - VC Referral\", \"Zeni Overview - Venture Capitalist\"]\n    }\n  ],\n  \"limit\": 200,\n  \"properties\": [\n    \"hs_activity_type\"\n  ]\n}",
+        "options": {
+          "pagination": {
+            "pagination": {
+              "parameters": {
+                "parameters": [
+                  {
+                    "type": "body",
+                    "name": "after",
+                    "value": "={{ $response.body.paging.next.after }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !$response.body.paging.next.after }}"
+            }
+          }
+        }
+      },
+      "id": "f1cda79b-8f65-4112-88b1-90ec85e2c942",
+      "name": "Get Meetings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -460,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "options": {}
+      },
+      "id": "aebc829c-f13b-47c9-9aed-cfb83bb6ecbd",
+      "name": "Split Meetings",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "id",
+        "options": {}
+      },
+      "id": "ac4d7430-4c47-4503-8acc-ea4269cef08e",
+      "name": "Split IDs",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "13e87120-ea74-4de5-acee-a0af73c14b1e",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        220,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.hubapi.com/crm/v3/objects/meetings/{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer HUBSPOT_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"properties\": {\n  \"hs_meeting_outcome\": \"\"\n  }\n}",
+        "options": {}
+      },
+      "id": "a2723f07-6968-4d0e-b303-9c9470371d77",
+      "name": "Set Meeting Outcome",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        620
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "cfecf951-32d6-4d88-89d5-ebde41e4b4f0",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -680,
+        600
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Meetings": {
+      "main": [
+        [
+          {
+            "node": "Split Meetings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split IDs": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Set Meeting Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Meeting Outcome": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Meetings": {
+      "main": [
+        [
+          {
+            "node": "Split IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Get Meetings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "fcef5d04-62c1-42fc-8686-5b91831e22b1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f35844c20bd7f8456f907e3b5a901af1cf08cec7fee985138953357fd244e5bd"
+  },
+  "id": "Op68yqUfd2Vf0ZU6",
+  "tags": []
+}
